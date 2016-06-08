@@ -1,0 +1,19 @@
+{
+    "name": "nicolasliu/wxbizmsgcrypt",
+    "description": "WeChat's php library for laravel5",
+    "type": "project",
+    "authors": [
+        {
+            "name": "NicolasLiu",
+            "email": "lkqemail@gmail.com"
+        }
+    ],
+    "require": {
+    	"php": ">=5.3.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Nicolasliu\\Wxbizmsgcrypt\\": "src/"
+        }
+    }
+}
