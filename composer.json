@@ -8,13 +8,10 @@
             "email": "lkqemail@gmail.com"
         }
     ],
-    "minimum-stability": "stable",
-    "require": {
-    	"php": ">=5.3.2"
-    },
+    "require": {},
     "autoload": {
         "psr-4": {
-            "Nicolasliu\\Wxbizmsgcrypt\\": "src/"
+            "Nicolasliu\\Wxbizmsgcrypt\\": "src"
         }
     }
 }
