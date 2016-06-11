@@ -16,7 +16,7 @@ class WxbizmsgcryptServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/config/wxbizmsgcrypt.php' => config_path('wxbizmsgcrypt.php'),
         ], 'config');
-
+	}
     /**
      * Register the application services.
      *
