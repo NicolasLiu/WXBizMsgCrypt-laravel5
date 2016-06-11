@@ -1,8 +1,10 @@
 <?php
 
-namespace Illuminate\Support\Facades;
+namespace Nicolasliu\Wxbizmsgcrypt\Facades;
 
-class WXBizMsgCrypt extends Facade
+use Illuminate\Support\Facades\Facade;
+
+class Wxcrypt extends Facade
 {
     /**
      * Get the registered name of the component.
@@ -11,6 +13,6 @@ class WXBizMsgCrypt extends Facade
      */
     protected static function getFacadeAccessor()
     {
-        return 'wxbizmsgcrypt';
+        return 'wxcrypt';
     }
 }

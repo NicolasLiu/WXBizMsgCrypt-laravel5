@@ -2,6 +2,7 @@
 
 namespace Nicolasliu\Wxbizmsgcrypt;
 
+use Illuminate\Http\Request;
 /**
  * 对公众平台发送给公众账号的消息加解密示例代码.
  *
@@ -30,7 +31,7 @@ class WXBizMsgCrypt
 	 * @param $encodingAesKey string 公众平台上，开发者设置的EncodingAESKey
 	 * @param $Corpid string 公众平台的Corpid
 	 */
-	public function WXBizMsgCrypt($token, $encodingAesKey, $Corpid)
+	public function __construct($token, $encodingAesKey, $Corpid)
 	{
 		$this->m_sToken = $token;
 		$this->m_sEncodingAesKey = $encodingAesKey;
@@ -46,8 +47,13 @@ class WXBizMsgCrypt
     *@param sReplyEchoStr: 解密之后的echostr，当return返回0时有效
     *@return：成功0，失败返回对应的错误码
 	*/
-	public function VerifyURL($sMsgSignature, $sTimeStamp, $sNonce, $sEchoStr, &$sReplyEchoStr)
+	public function VerifyURL(Request $request)
 	{
+		$sMsgSignature = $request->input('msg_signature');
+		$sTimeStamp = $request->input('timestamp');
+		$sNonce = $request->input('nonce');
+		$sEchoStr = $request->input('echostr');
+
 		if (strlen($this->m_sEncodingAesKey) != 43) {
 			return ErrorCode::$IllegalAesKey;
 		}
@@ -71,9 +77,9 @@ class WXBizMsgCrypt
 		if ($result[0] != 0) {
 			return $result[0];
 		}
-		$sReplyEchoStr = $result[1];
-
-		return ErrorCode::$OK;
+		
+		$rtn = array(ErrorCode::$OK, $result[1]);
+		return $rtn;
 	}
 	/**
 	 * 将公众平台回复用户的消息加密打包.

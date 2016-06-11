@@ -16,7 +16,6 @@ class WxbizmsgcryptServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/config/wxbizmsgcrypt.php' => config_path('wxbizmsgcrypt.php'),
         ], 'config');
-    }
 
     /**
      * Register the application services.
@@ -24,8 +23,8 @@ class WxbizmsgcryptServiceProvider extends ServiceProvider
      * @return void
      */
     public function register()
-    {
-        $this->app['wxbizmsgcrypt'] = $this->app->share(function ($app) {
+   	{
+        $this->app->singleton('wxcrypt', function() {
             return new WXBizMsgCrypt(
             	config('wxbizmsgcrypt.token'),
             	config('wxbizmsgcrypt.encodingAesKey'),
@@ -34,13 +33,4 @@ class WxbizmsgcryptServiceProvider extends ServiceProvider
         });
     }
     
-    /**
-     * Get the services provided by the provider.
-     *
-     * @return array
-     */
-    public function provides()
-    {
-        return array('Nicolasliu\Wxbizmsgcrypt');
-    }
 }
