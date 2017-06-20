@@ -1,5 +1,5 @@
 <?php
-namespace Nicolasliu\Wxbizmsgcrypt;
+
 /**
  * error code 说明.
  * <ul>

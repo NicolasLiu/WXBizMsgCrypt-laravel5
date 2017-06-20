@@ -1,11 +1,11 @@
 <?php
-namespace Nicolasliu\Wxbizmsgcrypt;
+
 include_once "errorCode.php";
 
 /**
  * SHA1 class
  *
- * 计算公众平台的消息签名接口.
+ * 计算企业微信的消息签名接口.
  */
 class SHA1
 {

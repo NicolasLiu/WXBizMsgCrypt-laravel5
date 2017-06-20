@@ -1,5 +1,4 @@
 <?php
-namespace Nicolasliu\Wxbizmsgcrypt;
 include_once "errorCode.php";
 
 /**

@@ -1,5 +1,5 @@
 <?php
-namespace Nicolasliu\Wxbizmsgcrypt;
+
 include_once "errorCode.php";
 
 /**
@@ -60,7 +60,7 @@ class Prpcrypt
 {
 	public $key;
 
-	function __construct($k)
+	function Prpcrypt($k)
 	{
 		$this->key = base64_decode($k . "=");
 	}
