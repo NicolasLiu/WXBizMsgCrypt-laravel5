@@ -1,4 +1,7 @@
 <?php
+namespace Nicolasliu\Wxbizmsgcrypt;
+
+use Illuminate\Http\Request;
 
 /**
  * 对企业微信发送给企业的消息加解密示例代码.
@@ -22,13 +25,16 @@ class WXBizMsgCrypt
 	private $m_sEncodingAesKey;
 	private $m_sCorpid;
 
+	private $sTimeStamp;
+	private $sNonce;
+
 	/**
 	 * 构造函数
 	 * @param $token string 企业微信后台，开发者设置的token
 	 * @param $encodingAesKey string 企业微信后台，开发者设置的EncodingAESKey
 	 * @param $Corpid string 企业的Corpid
 	 */
-	public function WXBizMsgCrypt($token, $encodingAesKey, $Corpid)
+	public function __construct($token, $encodingAesKey, $Corpid)
 	{
 		$this->m_sToken = $token;
 		$this->m_sEncodingAesKey = $encodingAesKey;
@@ -37,41 +43,41 @@ class WXBizMsgCrypt
 	
     /*
 	*验证URL
-    *@param sMsgSignature: 签名串，对应URL参数的msg_signature
-    *@param sTimeStamp: 时间戳，对应URL参数的timestamp
-    *@param sNonce: 随机串，对应URL参数的nonce
-    *@param sEchoStr: 随机串，对应URL参数的echostr
-    *@param sReplyEchoStr: 解密之后的echostr，当return返回0时有效
-    *@return：成功0，失败返回对应的错误码
+    *@param request Laravel请求
+    *@return array [成功0，失败返回对应的错误码, echostr]
 	*/
-	public function VerifyURL($sMsgSignature, $sTimeStamp, $sNonce, $sEchoStr, &$sReplyEchoStr)
+	public function VerifyURL(Request $request)
 	{
+        $sMsgSignature = $request->input('msg_signature');
+        $this->sTimeStamp = $request->input('timestamp');
+        $this->sNonce = $request->input('nonce');
+        $sEchoStr = $request->input('echostr');
+
 		if (strlen($this->m_sEncodingAesKey) != 43) {
-			return ErrorCode::$IllegalAesKey;
+			return [ErrorCode::$IllegalAesKey, ''];
 		}
 
 		$pc = new Prpcrypt($this->m_sEncodingAesKey);
 		//verify msg_signature
 		$sha1 = new SHA1;
-		$array = $sha1->getSHA1($this->m_sToken, $sTimeStamp, $sNonce, $sEchoStr);
+		$array = $sha1->getSHA1($this->m_sToken, $this->sTimeStamp, $this->sNonce, $sEchoStr);
 		$ret = $array[0];
 
 		if ($ret != 0) {
-			return $ret;
+			return [$ret, ''];
 		}
 
 		$signature = $array[1];
 		if ($signature != $sMsgSignature) {
-			return ErrorCode::$ValidateSignatureError;
+			return [ErrorCode::$ValidateSignatureError, ''];
 		}
 
 		$result = $pc->decrypt($sEchoStr, $this->m_sCorpid);
 		if ($result[0] != 0) {
-			return $result[0];
+			return [$result[0], ''];
 		}
-		$sReplyEchoStr = $result[1];
 
-		return ErrorCode::$OK;
+		return [ErrorCode::$OK, $result[1]];
 	}
 	/**
 	 * 将企业微信回复用户的消息加密打包.
@@ -82,14 +88,10 @@ class WXBizMsgCrypt
 	 * </ol>
 	 *
 	 * @param $replyMsg string 企业微信待回复用户的消息，xml格式的字符串
-	 * @param $timeStamp string 时间戳，可以自己生成，也可以用URL参数的timestamp
-	 * @param $nonce string 随机串，可以自己生成，也可以用URL参数的nonce
-	 * @param &$encryptMsg string 加密后的可以直接回复用户的密文，包括msg_signature, timestamp, nonce, encrypt的xml格式的字符串,
-	 *                      当return返回0时有效
 	 *
 	 * @return int 成功0，失败返回对应的错误码
 	 */
-	public function EncryptMsg($sReplyMsg, $sTimeStamp, $sNonce, &$sEncryptMsg)
+	public function EncryptMsg($sReplyMsg)
 	{
 		$pc = new Prpcrypt($this->m_sEncodingAesKey);
 
@@ -100,14 +102,14 @@ class WXBizMsgCrypt
 			return $ret;
 		}
 
-		if ($sTimeStamp == null) {
-			$sTimeStamp = time();
+		if ($this->sTimeStamp == null) {
+			$this->sTimeStamp = time();
 		}
 		$encrypt = $array[1];
 
 		//生成安全签名
 		$sha1 = new SHA1;
-		$array = $sha1->getSHA1($this->m_sToken, $sTimeStamp, $sNonce, $encrypt);
+		$array = $sha1->getSHA1($this->m_sToken, $this->sTimeStamp, $this->sNonce, $encrypt);
 		$ret = $array[0];
 		if ($ret != 0) {
 			return $ret;
@@ -116,7 +118,8 @@ class WXBizMsgCrypt
 
 		//生成发送的xml
 		$xmlparse = new XMLParse;
-		$sEncryptMsg = $xmlparse->generate($encrypt, $signature, $sTimeStamp, $sNonce);
+		$sEncryptMsg = $xmlparse->generate($encrypt, $signature, $this->sTimeStamp, $this->sNonce);
+		echo $sEncryptMsg;
 		return ErrorCode::$OK;
 	}
 
@@ -129,18 +132,19 @@ class WXBizMsgCrypt
 	 *    <li>对消息进行解密</li>
 	 * </ol>
 	 *
-	 * @param $msgSignature string 签名串，对应URL参数的msg_signature
-	 * @param $timestamp string 时间戳 对应URL参数的timestamp
-	 * @param $nonce string 随机串，对应URL参数的nonce
-	 * @param $postData string 密文，对应POST请求的数据
-	 * @param &$msg string 解密后的原文，当return返回0时有效
+	 * @param $request Laravel请求
 	 *
-	 * @return int 成功0，失败返回对应的错误码
+	 * @return array [成功0，失败返回对应的错误码,解密后的原文]
 	 */
-	public function DecryptMsg($sMsgSignature, $sTimeStamp = null, $sNonce, $sPostData, &$sMsg)
+	public function DecryptMsg(Request $request)
 	{
+        $sMsgSignature = $request->input('msg_signature');
+        $this->sTimeStamp = $request->input('timestamp');
+        $this->sNonce = $request->input('nonce');
+        $sPostData = $request->getContent();
+
 		if (strlen($this->m_sEncodingAesKey) != 43) {
-			return ErrorCode::$IllegalAesKey;
+			return [ErrorCode::$IllegalAesKey, ''];
 		}
 
 		$pc = new Prpcrypt($this->m_sEncodingAesKey);
@@ -151,11 +155,11 @@ class WXBizMsgCrypt
 		$ret = $array[0];
 
 		if ($ret != 0) {
-			return $ret;
+			return [$ret, ''];
 		}
 
-		if ($sTimeStamp == null) {
-			$sTimeStamp = time();
+		if ($this->sTimeStamp == null) {
+			$this->sTimeStamp = time();
 		}
 
 		$encrypt = $array[1];
@@ -163,25 +167,25 @@ class WXBizMsgCrypt
 
 		//验证安全签名
 		$sha1 = new SHA1;
-		$array = $sha1->getSHA1($this->m_sToken, $sTimeStamp, $sNonce, $encrypt);
+		$array = $sha1->getSHA1($this->m_sToken, $this->sTimeStamp, $this->sNonce, $encrypt);
 		$ret = $array[0];
 
 		if ($ret != 0) {
-			return $ret;
+			return [$ret, ''];
 		}
 
 		$signature = $array[1];
 		if ($signature != $sMsgSignature) {
-			return ErrorCode::$ValidateSignatureError;
+			return [ErrorCode::$ValidateSignatureError, ''];
 		}
 
 		$result = $pc->decrypt($encrypt, $this->m_sCorpid);
 		if ($result[0] != 0) {
-			return $result[0];
+			return [$result[0], ''];
 		}
-		$sMsg = $result[1];
+        $values = json_encode(simplexml_load_string($result[1], 'SimpleXMLElement', LIBXML_NOCDATA));
 
-		return ErrorCode::$OK;
+		return [ErrorCode::$OK, $values];
 	}
 
 }
